@@ -2,23 +2,39 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public struct LevelData
+{
+    public string name;
+    public string music;
+    public int numMiss;
+    public int numSlow;
+    public int numFast;
+    public int numGood;
+    public int numExcelent;
+    public int score;
+    public int maxChainSize;
+    public int numOfLevelHits;
+    public int grade;
+}
+
+[System.Serializable]
 public class LevelStats
 {
-    int numMiss;
-    int numSlow;
-    int numFast;
-    int numGood;
-    int numExcelent;
-    int score;
+    public LevelData levelData;
 
-    public LevelStats()
+    public LevelStats(string name, string music)
     {
-        numMiss = 0;
-        numSlow = 0;
-        numFast = 0;
-        numGood = 0;
-        numExcelent = 0;
-        score = 0;
+        levelData.name = name;
+        levelData.music = music;
+        levelData.numMiss = 0;
+        levelData.numSlow = 0;
+        levelData.numFast = 0;
+        levelData.numGood = 0;
+        levelData.numExcelent = 0;
+        levelData.score = 0;
+        levelData.maxChainSize = 0;
+        levelData.numOfLevelHits = 0;
+        levelData.grade = 0;
     }
 
     public void IncLevelStats(string type)
@@ -26,28 +42,92 @@ public class LevelStats
         switch(type)
         {
             case "miss":
-                numMiss++;
+                levelData.numMiss++;
                 break;
             case "slow":
-                numSlow++;
+                levelData.numSlow++;
                 break;
             case "fast":
-                numFast++;
+                levelData.numFast++;
                 break;
             case "good":
-                numGood++;
+                levelData.numGood++;
                 break;
             case "exc":
-                numExcelent++;
+                levelData.numExcelent++;
                 break;
             default:
                 Debug.LogWarning("LevelStats type not defined!");
                 break;
         }
+
+        levelData.numOfLevelHits++;
+    }
+
+    public int GetLevelStats(string type)
+    {
+        switch (type)
+        {
+            case "miss":
+                return levelData.numMiss;
+            case "slow":
+                return levelData.numSlow;
+            case "fast":
+                return levelData.numFast;
+            case "good":
+                return levelData.numGood;
+            case "exc":
+                return levelData.numExcelent;
+            case "score":
+                return levelData.score;
+            case "chain":
+                return levelData.maxChainSize;
+            default:
+                Debug.LogWarning("LevelStats type not defined!");
+                break;
+        }
+
+        Debug.LogWarning("Could not get levelStats for: " + type + " data");
+        return 0;
     }
 
     public void UpdateScore(int score)
     {
-        this.score = score;
+        this.levelData.score = score;
+    }
+
+    public void UpdateMaxChain(int chain)
+    {
+        this.levelData.maxChainSize = chain;
+    }
+
+    public int GetLevelGrade()
+    {
+        int grade = 0;
+
+        grade = (int)(((levelData.numGood + levelData.numExcelent) / (float)levelData.numOfLevelHits) * 100);
+        levelData.grade = grade;
+
+        return grade;
+    }
+
+    public string getName()
+    {
+        return levelData.name;
+    }
+
+    public void setName(string name)
+    {
+        levelData.name = name;
+    }
+
+    public string getMusic()
+    {
+        return levelData.music;
+    }
+
+    public void setMusic(string music)
+    {
+        levelData.music = music;
     }
 }

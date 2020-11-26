@@ -35,15 +35,31 @@ public class AudioManager : MonoBehaviour
     {
         switch(level)
         {
-            case "tictictac":
+            case "vermelho":
                 musicSource.clip = musics[0];
-                musicSource.volume = 0.02f;
-                musicSource.Play();
+                break;
+            case "eusouatoada":
+                musicSource.clip = musics[1];
+                break;
+            case "tictictac":
+                musicSource.clip = musics[2];
+                break;
+            case "paixaoazul":
+                musicSource.clip = musics[3];
+                break;
+            case "cantodamata":
+                musicSource.clip = musics[4];
+                break;
+            case "evolucaodascores":
+                musicSource.clip = musics[5];
                 break;
             default:
                 Debug.LogWarning("Music not defined");
                 break;
         }
+
+        musicSource.volume = 0.02f;
+        musicSource.Play();
     }
 
     public void PlayHitSound()
@@ -71,5 +87,10 @@ public class AudioManager : MonoBehaviour
     public float GetMusicTime()
     {
         return musicSource.time;
+    }
+
+    public bool IsMusicStillPlaying()
+    {
+        return musicSource.isPlaying;
     }
 }

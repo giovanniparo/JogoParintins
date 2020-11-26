@@ -12,7 +12,6 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] private GameObject circleHitPrefab;
     [SerializeField] private Transform[] chainSpawnPositions;
-    [SerializeField] private string levelFilePath;
     [SerializeField] private Sprite[] numberSprites;
     [SerializeField] private Color[] colors;
     [SerializeField] private float minDistToPositionHit;
@@ -28,7 +27,7 @@ public class GameManager : MonoBehaviour
 
     private Vector3 mousePos;
     private RaycastHit2D hit;
-
+    private string levelFilePath;
     private Queue<GameObject> hitQueue;
     private GameObject currentHit;
     private Queue<GameObject> liveHitQueue;
@@ -51,6 +50,7 @@ public class GameManager : MonoBehaviour
         else
             instance = this;
 
+        levelFilePath = "Assets/Levels/" + SceneLoader.instance.currentPlayerData.music + ".txt";
         streamReader = new StreamReader(levelFilePath);
         hitQueue = new Queue<GameObject>();
         liveHitQueue = new Queue<GameObject>();
@@ -66,18 +66,22 @@ public class GameManager : MonoBehaviour
             Debug.LogError("Could not find levelFilePath at " + levelFilePath);
 
         internalTimer = 0.0f;
-        AudioManager.instance.PlayMusic("tictictac");
+        AudioManager.instance.PlayMusic(SceneLoader.instance.currentPlayerData.music);
+        FeedbackManager.instance.ActivateStartText();
     }
 
     private void Update()
     {
+        if (!AudioManager.instance.IsMusicStillPlaying()) 
+            FeedbackManager.instance.GiveEndofLevelFeedback();
+
         UpdateTimer();
 
-        if (spawnStartTextTime - timeCorrectionConstant - internalTimer < 0.001f && !startSpawned)
+        /*if (spawnStartTextTime - timeCorrectionConstant - internalTimer < 0.001f && !startSpawned)
         {
             FeedbackManager.instance.ActivateStartText();
             startSpawned = true;
-        }
+        }*/
 
         if (hitQueue.Count > 0 && !spawning)
         {
