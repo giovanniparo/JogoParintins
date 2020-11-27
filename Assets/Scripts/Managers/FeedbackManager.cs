@@ -7,7 +7,6 @@ using TMPro;
 enum uiState
 {
     PLAYING,
-    PAUSED,
     FEEDBACK
 }
 
@@ -17,15 +16,20 @@ public class FeedbackManager : MonoBehaviour
 
     private GetPHP getPHP;
 
+    [SerializeField] private Gradient[] colorGradients;
+    [SerializeField] private GameObject particleGeneratorDrums;
+    [SerializeField] private GameObject particleChainUI;
+
     [SerializeField] private Transform feedbackBubblePosition;
     [SerializeField] private GameObject[] feedbackBubblePrefabs;
+    [SerializeField] private TextMeshProUGUI[] musicDataText;
+
     [SerializeField] private TextMeshProUGUI scoreText;
     [SerializeField] private TextMeshProUGUI chainText;
     [SerializeField] private TextMeshProUGUI scorePlusText;
     [SerializeField] private GameObject startText;
     [SerializeField] private GameObject[] playingUIElements;
     [SerializeField] private GameObject feedbackUIElements;
-    //[SerializeField] private GameObject[] pausedUIElements;
     [SerializeField] private TextMeshProUGUI feedbackWindowMusicName;
     [SerializeField] private TextMeshProUGUI feedbackWindowPlayerName;
     [SerializeField] private TextMeshProUGUI[] feedbackWindowHitCounters;
@@ -43,7 +47,7 @@ public class FeedbackManager : MonoBehaviour
     public int chainMultiplier;
 
     private GameObject currentFeedbackBubble;
-    private int chainCounter;
+    public int chainCounter;
     private int maxChainCounter = 0;
     private int score;
     private int currentScore;
@@ -52,7 +56,6 @@ public class FeedbackManager : MonoBehaviour
 
     private bool isUpdatingFeedbackScreen = false;
 
-    private Vector3 initScale;
     private LevelStats levelStatsData;
     private uiState state;
 
@@ -70,8 +73,12 @@ public class FeedbackManager : MonoBehaviour
         scoreTextAnimator = scoreText.gameObject.GetComponent<Animator>();
         chainTextAnimator = chainText.gameObject.GetComponent<Animator>();
 
-        levelStatsData = new LevelStats(SceneLoader.instance.currentPlayerData.name, SceneLoader.instance.currentPlayerData.music);
-        initScale = transform.localScale;
+        levelStatsData = new LevelStats(SceneLoader.playingInfo.name,
+                                        SceneLoader.playingInfo.music,
+                                        SceneLoader.playingInfo.team,
+                                        SceneLoader.playingInfo.idSession);
+        SetMusicData();
+        SetParticleSystemColor();
         state = uiState.PLAYING;
     }
 
@@ -80,10 +87,7 @@ public class FeedbackManager : MonoBehaviour
         if (state == uiState.PLAYING)
         {
             UpdateUI();
-        }
-        else if (state == uiState.PAUSED)
-        {
-            /*TODO*/
+            UpdateParticleSystems();
         }
         else if (state == uiState.FEEDBACK && !isUpdatingFeedbackScreen)
         {
@@ -96,14 +100,10 @@ public class FeedbackManager : MonoBehaviour
 
             levelStatsData.UpdateScore(currentScore);
             levelStatsData.UpdateMaxChain(maxChainCounter);
-            feedbackWindowMusicName.text = levelStatsData.levelData.music.ToUpper();
+            feedbackWindowMusicName.text = musicDataText[0].text;
             feedbackWindowPlayerName.text = levelStatsData.levelData.name + " : " + System.DateTime.Now.Date.ToString();
 
             StartCoroutine("ShowFeedbackCoroutine");
-        }
-        else if (state == uiState.FEEDBACK)
-        {
-            /*TODO*/
         }
         else Debug.LogWarning("UI in a state not defined");
     }
@@ -193,12 +193,93 @@ public class FeedbackManager : MonoBehaviour
     public void SaveButtonClicked()
     {
         getPHP.SaveMusicData(levelStatsData.levelData);
-        getPHP.UpdatePlayerData(levelStatsData.levelData.name, levelStatsData.levelData.music, SceneLoader.instance.currentPlayerData.team);
     }
 
     public void NextButtonClicked()
     {
         SceneLoader.instance.LoadNextMusic();
+    }
+
+    public void SetMusicData()
+    {
+        string music = "";
+        string bandName = "";
+
+        if (levelStatsData.levelData.team == 0)
+        {
+            switch(levelStatsData.levelData.music)
+            {
+                case 0:
+                    music = "VERMELHO";
+                    bandName = "GARANTIDO 1994";
+                    break;
+                case 1:
+                    music = "EU SOU A TOADA";
+                    bandName = "GARANTIDO 2016";
+                    break;
+                case 2:
+                    music = "TIC TIC TAC";
+                    bandName = "CARRAPICHO";
+                    break;
+                default:
+                    Debug.LogWarning("Music not defined");
+                    break;
+            }
+        }
+        else if (levelStatsData.levelData.team == 1)
+        {
+            switch(levelStatsData.levelData.music)
+            {
+                case 0:
+                    music = "PAIXAO AZUL";
+                    bandName = "CAPRICHOSO 2007";
+                    break;
+                case 1:
+                    music = "CANTO DA MATA";
+                    bandName = "CANTO ENVOLVENTE";
+                    break;
+                case 2:
+                    music = "EVOLUCAO DAS CORES";
+                    bandName = "CAPRICHOSO 1999";
+                    break;
+                default:
+                    Debug.LogWarning("Music not defined");
+                    break;
+            }
+        }
+
+        musicDataText[0].text = music;
+        musicDataText[1].text = bandName;
+    }
+
+    public void SetParticleSystemColor() //Call at start
+    {
+        //Setting Color over Lifetime
+        var colorOverLifetimeModule = particleGeneratorDrums.GetComponent<ParticleSystem>().colorOverLifetime;
+        colorOverLifetimeModule.color = colorGradients[levelStatsData.levelData.team];
+        colorOverLifetimeModule = particleChainUI.GetComponent<ParticleSystem>().colorOverLifetime;
+        colorOverLifetimeModule.color = colorGradients[levelStatsData.levelData.team];
+    }
+
+    public void UpdateParticleSystems() //Call every frame
+    {
+        if(chainCounter == 0)
+        {
+            particleGeneratorDrums.GetComponent<ParticleSystem>().Stop(false, ParticleSystemStopBehavior.StopEmitting);
+            particleChainUI.GetComponent<ParticleSystem>().Stop(false, ParticleSystemStopBehavior.StopEmitting);
+        }
+        else
+        {
+            if(particleGeneratorDrums.GetComponent<ParticleSystem>().isStopped)
+                particleGeneratorDrums.GetComponent<ParticleSystem>().Play();
+            if(particleChainUI.GetComponent<ParticleSystem>().isStopped)
+                particleChainUI.GetComponent<ParticleSystem>().Play();
+            //Setting Emissions
+            var emissionModule = particleGeneratorDrums.GetComponent<ParticleSystem>().emission;
+            emissionModule.rateOverTime = Mathf.Clamp(chainCounter * 10, 0.0f, 200.0f);
+            emissionModule = particleChainUI.GetComponent<ParticleSystem>().emission;
+            emissionModule.rateOverTime = Mathf.Clamp(chainCounter * 2, 0.0f, 40.0f);
+        }
     }
 
     IEnumerator UpdateScoretextCoroutine()

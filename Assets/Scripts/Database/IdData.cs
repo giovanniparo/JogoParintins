@@ -3,23 +3,29 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
-public class JogadorLoginData
+public class IdData
 {
     public bool error;
     public string message;
-    public string name;
+    public int id;
+    public int music;
+    public int team;
 
-    public JogadorLoginData()
+    public IdData()
     {
         error = true;
         message = "";
-        name = "";
+        id = 0;
+        music = 4;
+        team = 2;
     }
 
     public void Clear()
     {
         error = true;
         message = "";
-        name = "";
+        id = 0;
+        music = 4;
+        team = 2;
     }
 }

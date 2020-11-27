@@ -5,7 +5,8 @@ using UnityEngine;
 public struct LevelData
 {
     public string name;
-    public string music;
+    public int music;
+    public int team;
     public int numMiss;
     public int numSlow;
     public int numFast;
@@ -15,6 +16,7 @@ public struct LevelData
     public int maxChainSize;
     public int numOfLevelHits;
     public int grade;
+    public int idSession;
 }
 
 [System.Serializable]
@@ -22,10 +24,11 @@ public class LevelStats
 {
     public LevelData levelData;
 
-    public LevelStats(string name, string music)
+    public LevelStats(string name, int music, int team, int idSession)
     {
         levelData.name = name;
         levelData.music = music;
+        levelData.team = team;
         levelData.numMiss = 0;
         levelData.numSlow = 0;
         levelData.numFast = 0;
@@ -35,6 +38,7 @@ public class LevelStats
         levelData.maxChainSize = 0;
         levelData.numOfLevelHits = 0;
         levelData.grade = 0;
+        levelData.idSession = idSession;
     }
 
     public void IncLevelStats(string type)
@@ -109,25 +113,5 @@ public class LevelStats
         levelData.grade = grade;
 
         return grade;
-    }
-
-    public string getName()
-    {
-        return levelData.name;
-    }
-
-    public void setName(string name)
-    {
-        levelData.name = name;
-    }
-
-    public string getMusic()
-    {
-        return levelData.music;
-    }
-
-    public void setMusic(string music)
-    {
-        levelData.music = music;
     }
 }

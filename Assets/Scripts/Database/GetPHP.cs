@@ -6,16 +6,24 @@ using TMPro;
 
 public class GetPHP : MonoBehaviour
 {
-    [SerializeField] private TextMeshProUGUI userFeedback;
+    public JogadorLoginData currentPlayerData;
+    public IdData currentIdData;
+    public static string returnMessage;
 
-    public void CreateUser(string name, string pass, string email, char gender)
+    private void Awake()
     {
-        StartCoroutine(CreateUserCoroutine(name, pass, email, gender));
+        currentPlayerData = new JogadorLoginData();
+        currentIdData = new IdData();
     }
 
-    public void FindUser(string nome, string pass)
+    public void CreateUser(string name, string pass, string email)
     {
-        StartCoroutine(FindUserCoroutine(nome, pass));
+        StartCoroutine(CreateUserCoroutine(name, pass, email));
+    }
+
+    public void FindUser(string name, string pass)
+    {
+        StartCoroutine(FindUserCoroutine(name, pass));
     }
 
     public void SaveMusicData(LevelData levelData)
@@ -23,19 +31,41 @@ public class GetPHP : MonoBehaviour
         StartCoroutine(SaveLevelStatsCoroutine(levelData));
     }
 
-    public void UpdatePlayerData(string name, string music, int team)
+    public void CheckIfSessaoExists(string name)
     {
-        StartCoroutine(UpdatePlayerDataCoroutine(name, music, team));
+        StartCoroutine(CheckIfSessaoExistsCoroutine(name));
     }
 
-    IEnumerator UpdatePlayerDataCoroutine(string name, string music, int team)
+    public void CreateSession(string name, int team)
+    {
+        currentIdData.Clear();
+        StartCoroutine(CreateSessionCoroutine(name, team));
+    }
+
+    IEnumerator CheckIfSessaoExistsCoroutine(string name)
     {
         WWWForm wwwf = new WWWForm();
         wwwf.AddField("name", name);
-        wwwf.AddField("music", music);
+
+        WWW www = new WWW("http://localhost/jogos/checkSectionID.php", wwwf);
+
+        yield return www;
+
+        if (www.error == null)
+        {
+            Debug.Log(www.text);
+            currentIdData = JsonUtility.FromJson<IdData>(www.text);
+            returnMessage = currentIdData.message;
+        }
+    }
+
+    IEnumerator CreateSessionCoroutine(string name, int team)
+    {
+        WWWForm wwwf = new WWWForm();
+        wwwf.AddField("name", name);
         wwwf.AddField("team", team);
 
-        using (var w = UnityWebRequest.Post("http://localhost/jogos/updateJogador.php", wwwf))
+        using (var w = UnityWebRequest.Post("http://localhost/jogos/createSession.php", wwwf))
         {
             yield return w.SendWebRequest();
 
@@ -45,19 +75,19 @@ public class GetPHP : MonoBehaviour
             }
             else
             {
-                StartCoroutine(GiveUserFeedbackCoroutine(w.downloadHandler.text));
+                Debug.Log(w.downloadHandler.text);
+                currentIdData = JsonUtility.FromJson<IdData>(w.downloadHandler.text);
+                returnMessage = currentIdData.message;
             }
         }
     }
 
-    IEnumerator CreateUserCoroutine(string name, string pass, string email, char gender)
+    IEnumerator CreateUserCoroutine(string name, string pass, string email)
     {
         WWWForm wwwf = new WWWForm();
-        wwwf.AddField("id", Random.Range(1, 1000000));
         wwwf.AddField("name", name);
         wwwf.AddField("pass", MD5Sum(pass));
         wwwf.AddField("email", email);
-        wwwf.AddField("gender", gender);
 
         using (var w = UnityWebRequest.Post("http://localhost/jogos/inserirJogador.php", wwwf))
         {
@@ -69,15 +99,16 @@ public class GetPHP : MonoBehaviour
             }
             else
             {
-                StartCoroutine(GiveUserFeedbackCoroutine(w.downloadHandler.text));
+                Debug.Log(w.downloadHandler.text);
+                returnMessage = w.downloadHandler.text;
             }
         }
     }
 
-    IEnumerator FindUserCoroutine(string nome, string pass)
+    IEnumerator FindUserCoroutine(string name, string pass)
     {
         WWWForm wwwf = new WWWForm();
-        wwwf.AddField("nome", nome);
+        wwwf.AddField("name", name);
         wwwf.AddField("pass", MD5Sum(pass));
 
         WWW www = new WWW("http://localhost/jogos/encontrarJogador.php", wwwf);
@@ -86,24 +117,27 @@ public class GetPHP : MonoBehaviour
 
         if (www.error == null)
         {
-            SceneLoader.instance.currentPlayerData = JsonUtility.FromJson<JogadorLoginData>(www.text);
-            StartCoroutine(GiveUserFeedbackCoroutine(SceneLoader.instance.currentPlayerData.message));
+            Debug.Log(www.text);
+            currentPlayerData = JsonUtility.FromJson<JogadorLoginData>(www.text);
+            returnMessage = currentPlayerData.message;
         }
     }
 
     IEnumerator SaveLevelStatsCoroutine(LevelData levelData)
     {
         WWWForm wwwf = new WWWForm();
-        wwwf.AddField("nome", levelData.name);
+        wwwf.AddField("name", levelData.name);
         wwwf.AddField("score", levelData.score);
         wwwf.AddField("grade", levelData.grade);
         wwwf.AddField("chain", levelData.maxChainSize);
         wwwf.AddField("music", levelData.music);
+        wwwf.AddField("team", levelData.team);
         wwwf.AddField("numMiss", levelData.numMiss);
         wwwf.AddField("numSlow", levelData.numSlow);
         wwwf.AddField("numFast", levelData.numFast);
         wwwf.AddField("numGood", levelData.numGood);
         wwwf.AddField("numExc", levelData.numExcelent);
+        wwwf.AddField("idSession", levelData.idSession);
 
         using (var w = UnityWebRequest.Post("http://localhost/jogos/saveMusicData.php", wwwf))
         {
@@ -115,19 +149,10 @@ public class GetPHP : MonoBehaviour
             }
             else
             {
-                StartCoroutine(GiveUserFeedbackCoroutine(w.downloadHandler.text));
+                Debug.Log(w.downloadHandler.text);
+                returnMessage = w.downloadHandler.text;
             }
         }
-    }
-
-    IEnumerator GiveUserFeedbackCoroutine(string feedback)
-    {
-        userFeedback.gameObject.SetActive(true);
-        userFeedback.text = feedback;
-        Debug.Log(feedback);
-        yield return new WaitForSeconds(2.0f);
-        userFeedback.text = "";
-        userFeedback.gameObject.SetActive(false);
     }
 
     public string MD5Sum(string strToEncrypt)

@@ -18,8 +18,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float minChainHitDistance;
     [SerializeField] private float maxChainHitDistance;
     [SerializeField] private float chainTimeDif;
-    [SerializeField] private float xLimitOfBackground;
-    [SerializeField] private float yLimitOfBackground;
+    [SerializeField] private float backgroundRadius;
     [SerializeField] private float timeCorrectionConstant;
     [SerializeField] private int currentHitSortingOrder;
 
@@ -34,10 +33,6 @@ public class GameManager : MonoBehaviour
 
     private int chainSpawnCounter = 0;
     private int chainID = 0;
-    private float spawnStartTextTime = 10000.0f;
-    private float internalTimer = 0.0f;
-    private bool startSpawned = false;
-    private bool startSet = false;
     private bool spawning = false;
 
     private void Awake()
@@ -50,7 +45,8 @@ public class GameManager : MonoBehaviour
         else
             instance = this;
 
-        levelFilePath = "Assets/Levels/" + SceneLoader.instance.currentPlayerData.music + ".txt";
+        levelFilePath = "Assets/Levels/" + SceneLoader.ConvMusicIndexToPath(SceneLoader.playingInfo.music,
+                                                                            SceneLoader.playingInfo.team) + ".txt";
         streamReader = new StreamReader(levelFilePath);
         hitQueue = new Queue<GameObject>();
         liveHitQueue = new Queue<GameObject>();
@@ -65,8 +61,8 @@ public class GameManager : MonoBehaviour
         else
             Debug.LogError("Could not find levelFilePath at " + levelFilePath);
 
-        internalTimer = 0.0f;
-        AudioManager.instance.PlayMusic(SceneLoader.instance.currentPlayerData.music);
+        AudioManager.instance.PlayMusic(SceneLoader.ConvMusicIndexToPath(SceneLoader.playingInfo.music,
+                                                                            SceneLoader.playingInfo.team));
         FeedbackManager.instance.ActivateStartText();
     }
 
@@ -74,14 +70,6 @@ public class GameManager : MonoBehaviour
     {
         if (!AudioManager.instance.IsMusicStillPlaying()) 
             FeedbackManager.instance.GiveEndofLevelFeedback();
-
-        UpdateTimer();
-
-        /*if (spawnStartTextTime - timeCorrectionConstant - internalTimer < 0.001f && !startSpawned)
-        {
-            FeedbackManager.instance.ActivateStartText();
-            startSpawned = true;
-        }*/
 
         if (hitQueue.Count > 0 && !spawning)
         {
@@ -93,17 +81,13 @@ public class GameManager : MonoBehaviour
         {
              SetCurrentHit();
              liveHitQueue.Enqueue(currentHit);
+             if(liveHitQueue.Count == 1) liveHitQueue.Peek().transform.localScale *= 1.5f;
              currentHit.SetActive(true);
              spawning = false;
         }
         
         if (Input.GetMouseButtonDown(0))
             ProcessInput();
-    }
-
-    public void UpdateTimer()
-    {
-        internalTimer = (float)AudioSettings.dspTime; 
     }
 
     private void ProcessInput()
@@ -116,7 +100,7 @@ public class GameManager : MonoBehaviour
         {
             if (hit.collider.gameObject == liveHitQueue.Peek())
             {
-                liveHitQueue.Dequeue().GetComponent<Hit>().Interact();
+                DequeueLiveHit().GetComponent<Hit>().Interact();
             }
         }
     }
@@ -125,8 +109,17 @@ public class GameManager : MonoBehaviour
     {
         if (liveHitQueue.Count > 0)
         {
-            liveHitQueue.Dequeue();
+            DequeueLiveHit();
         }
+    }
+
+    public GameObject DequeueLiveHit()
+    {
+        GameObject dummyLiveHit;
+        dummyLiveHit = liveHitQueue.Dequeue();
+        if(liveHitQueue.Count > 0)
+            liveHitQueue.Peek().transform.localScale *= 1.5f;
+        return dummyLiveHit;
     }
 
     private void PopulateHits()
@@ -140,12 +133,6 @@ public class GameManager : MonoBehaviour
         string[] currentLine = currentLineFull.Split(' ');
         while (currentLineFull != null)
         {
-            if (!startSet)
-            {
-                spawnStartTextTime = float.Parse(currentLine[0]) - 3.0f;
-                startSet = true;
-            }
-
             while (chainCounter < numberSprites.Length && currentLineFull != null)
             {
                 currentHit = Instantiate(circleHitPrefab, Vector3.zero, Quaternion.identity); //Instantiate all hits at zero
@@ -189,7 +176,7 @@ public class GameManager : MonoBehaviour
                 spawnDirection = GetRandomDirection();
                 if (liveHitQueue.Count > 0)
                 {
-                    if(liveHitQueue.ElementAt(liveHitQueue.Count - 1).GetComponent<Hit>().chainID == chainID)
+                    if (liveHitQueue.ElementAt(liveHitQueue.Count - 1).GetComponent<Hit>().chainID == chainID)
                         randomPos = (Vector2)liveHitQueue.ElementAt(liveHitQueue.Count - 1).transform.position + spawnDirection * rngConst;
                     else
                     {
@@ -199,7 +186,7 @@ public class GameManager : MonoBehaviour
                 }
                 else
                     randomPos = spawnDirection * rngConst;
-            } while (Mathf.Abs(randomPos.x) >= xLimitOfBackground || Mathf.Abs(randomPos.y) >= yLimitOfBackground);
+            } while (randomPos.magnitude > backgroundRadius) ;
 
             foreach (GameObject hit in liveHitQueue)
             {
@@ -235,7 +222,6 @@ public class GameManager : MonoBehaviour
     private void SetCurrentHit()
     {
         currentHit.transform.position = GetNextRandomPosition(currentHit.GetComponent<Hit>().chainID);
-        currentHit.transform.localScale *= 1.1f;
         currentHit.GetComponent<SpriteRenderer>().sortingOrder = currentHitSortingOrder;
         currentHit.GetComponent<CircleHit>().numberHolder.GetComponent<SpriteRenderer>().sortingOrder = currentHitSortingOrder + 1;
         currentHit.GetComponent<CircleHit>().circleHitMarker.GetComponent<SpriteRenderer>().sortingOrder = currentHitSortingOrder+2;

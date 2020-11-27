@@ -140,7 +140,7 @@ Transform:
   m_GameObject: {fileID: 6063532129800157857}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.85, y: 1.85, z: 1}
+  m_LocalScale: {x: 1.5, y: 1.5, z: 1}
   m_Children:
   - {fileID: 6063532129791430490}
   - {fileID: 6063532130736931698}
@@ -227,6 +227,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   numberSpriteRenderer: {fileID: 6063532130736931699}
   time: 0
+  chainID: 0
   circleHitMarker: {fileID: 6063532129791430469}
   numberHolder: {fileID: 6063532130736931709}
 --- !u!1 &6063532130736931709

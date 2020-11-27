@@ -59,14 +59,7 @@ public class CircleHit : Hit
             AudioManager.instance.PlayHitSound();
             Destroy(this.gameObject);
         }
-        
-        /*timer += Time.deltaTime;
-        if (ratio < 0.9f && !done)
-        {
-            done = true;
-            Debug.Log("Timer: " + timer);
 
-        }*/
 
         if (ratio > 1.00f)
             circleHitMarker.GetComponent<SpriteRenderer>().color = Color.white;
