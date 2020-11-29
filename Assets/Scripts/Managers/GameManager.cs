@@ -45,8 +45,10 @@ public class GameManager : MonoBehaviour
         else
             instance = this;
 
-        levelFilePath = "Assets/Levels/" + SceneLoader.ConvMusicIndexToPath(SceneLoader.playingInfo.music,
-                                                                            SceneLoader.playingInfo.team) + ".txt";
+        levelFilePath = "Assets/Levels/" + SceneLoader.ConvMusicIndexToPath(SceneLoader.instance.playingInfo.team, 
+                                                                            SceneLoader.instance.playingInfo.music) + ".txt";
+        Debug.Log("Loaded level asset at: " + levelFilePath);
+        
         streamReader = new StreamReader(levelFilePath);
         hitQueue = new Queue<GameObject>();
         liveHitQueue = new Queue<GameObject>();
@@ -61,8 +63,7 @@ public class GameManager : MonoBehaviour
         else
             Debug.LogError("Could not find levelFilePath at " + levelFilePath);
 
-        AudioManager.instance.PlayMusic(SceneLoader.ConvMusicIndexToPath(SceneLoader.playingInfo.music,
-                                                                            SceneLoader.playingInfo.team));
+        AudioManager.instance.PlayMusic(SceneLoader.instance.playingInfo.music, SceneLoader.instance.playingInfo.team);
         FeedbackManager.instance.ActivateStartText();
     }
 
@@ -81,7 +82,6 @@ public class GameManager : MonoBehaviour
         {
              SetCurrentHit();
              liveHitQueue.Enqueue(currentHit);
-             if(liveHitQueue.Count == 1) liveHitQueue.Peek().transform.localScale *= 1.5f;
              currentHit.SetActive(true);
              spawning = false;
         }
@@ -100,7 +100,7 @@ public class GameManager : MonoBehaviour
         {
             if (hit.collider.gameObject == liveHitQueue.Peek())
             {
-                DequeueLiveHit().GetComponent<Hit>().Interact();
+                liveHitQueue.Dequeue().GetComponent<Hit>().Interact();
             }
         }
     }
@@ -109,17 +109,8 @@ public class GameManager : MonoBehaviour
     {
         if (liveHitQueue.Count > 0)
         {
-            DequeueLiveHit();
+            liveHitQueue.Dequeue();
         }
-    }
-
-    public GameObject DequeueLiveHit()
-    {
-        GameObject dummyLiveHit;
-        dummyLiveHit = liveHitQueue.Dequeue();
-        if(liveHitQueue.Count > 0)
-            liveHitQueue.Peek().transform.localScale *= 1.5f;
-        return dummyLiveHit;
     }
 
     private void PopulateHits()

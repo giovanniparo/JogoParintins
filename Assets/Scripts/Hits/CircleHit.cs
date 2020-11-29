@@ -6,6 +6,7 @@ public class CircleHit : Hit
 {
     public GameObject circleHitMarker;
     public GameObject numberHolder;
+    [SerializeField] private float speed;
 
     private float ratio;
     private Collider2D circleColl;
@@ -13,6 +14,7 @@ public class CircleHit : Hit
 
     private bool excelent = false;
     private bool done = false;
+    private bool timed = false;
     private float timer = 0.0f;
 
     public override void Awake()
@@ -27,7 +29,7 @@ public class CircleHit : Hit
         if (ratio > 1.00f)
         {
             FeedbackManager.instance.FastFeedback();
-            Destroy(this.gameObject);
+            DestroyThis();
         } 
         else if (ratio >= 0.90f)
         {
@@ -41,40 +43,60 @@ public class CircleHit : Hit
         {
             FeedbackManager.instance.GoodFeedback();
             AudioManager.instance.PlayHitSound();
-            Destroy(this.gameObject);
+            DestroyThis();
         }
         else
         {
             FeedbackManager.instance.SlowFeedback();
-            Destroy(this.gameObject);
+            DestroyThis();
         }
+    }
+
+    public void DestroyThis()
+    {
+        StopAllCoroutines();
+        Destroy(this.gameObject);
     }
 
     private void Update()
     {
-        ratio = markerColl.bounds.extents.magnitude / circleColl.bounds.extents.magnitude;
-        
-        if(excelent && ratio <= 0.9f)
+        ResizeMarker();
+        ratio = markerColl.bounds.size.magnitude / circleColl.bounds.size.magnitude;
+        timer += (Time.deltaTime);
+        if (ratio - 0.9f <= 0.001f && !timed)
         {
-            AudioManager.instance.PlayHitSound();
-            Destroy(this.gameObject);
+            timed = true;
+            Debug.Log(timer);
         }
 
+        if (excelent && ratio - 0.9f <= 0.001f)
+        {
+            AudioManager.instance.PlayHitSound();
+            DestroyThis();
+        }
 
         if (ratio > 1.00f)
             circleHitMarker.GetComponent<SpriteRenderer>().color = Color.white;
-        else if(ratio >= 0.90f)
+        else if (ratio - 0.9f <= 0.001f)
             circleHitMarker.GetComponent<SpriteRenderer>().color = Color.green;
-        else if(ratio >= 0.85f)
+        else if (ratio - 0.85f <= 0.001f)
             circleHitMarker.GetComponent<SpriteRenderer>().color = Color.blue;
         else
             circleHitMarker.GetComponent<SpriteRenderer>().color = Color.red;
 
-        if (ratio <= 0.01f)
+        if (ratio - 0.8f <= 0.001f)
         {
             GameManager.instance.Missed();
             FeedbackManager.instance.MissFeedback();
-            Destroy(this.gameObject);
+            DestroyThis();
+        }
+    }
+
+    private void ResizeMarker()
+    {
+        if (circleHitMarker.transform.localScale.x >= 0.0f)
+        {
+            circleHitMarker.transform.localScale -= new Vector3(speed * (Time.deltaTime), speed * (Time.deltaTime), 0);
         }
     }
 }

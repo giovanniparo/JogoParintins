@@ -20,6 +20,7 @@ public struct Info
     public int music;
     public int team;
     public int idSession;
+    public int[] grades;
 }
 
 public class LoginManager : MonoBehaviour
@@ -43,11 +44,11 @@ public class LoginManager : MonoBehaviour
     [SerializeField] private TMP_InputField nameInput;
     [SerializeField] private TMP_InputField passInput;
     [SerializeField] private TMP_InputField emailInput;
-    [SerializeField] private TMP_InputField generoInput;
 
     private loginUIState state;
     public Info loadedInfo;
 
+    private int numTries = 150;
     private bool loggingIn = false;
 
     private void Awake()
@@ -63,6 +64,7 @@ public class LoginManager : MonoBehaviour
 
     private void Start()
     {
+        loadedInfo.grades = new int[3];
         getPHP = GetComponent<GetPHP>();
         state = loginUIState.LOGIN;
     }
@@ -96,16 +98,13 @@ public class LoginManager : MonoBehaviour
                 chooseTeamPanel.SetActive(true);
                 break;
             case loginUIState.LOADING_SCENE:
-                SceneLoader.playingInfo = loadedInfo;
-                SceneLoader.instance.LoadNextMusic();
+                SceneLoader.instance.playingInfo = loadedInfo;
+                SceneLoader.instance.LoadMusic();
                 break;
             default:
                 Debug.LogWarning("loginUI state not well defined!");
                 break;
         }
-
-        if (GetPHP.returnMessage != "")
-            StartCoroutine(givePlayerTextFeedback());
     }
 
     public void ChangeInterface()
@@ -113,6 +112,7 @@ public class LoginManager : MonoBehaviour
         if (state == loginUIState.CREATE_USER) //RETURN BUTTON
         {
             loggingIn = false;
+            PlaySound("cancel");
             state = loginUIState.LOGIN;
         }
         else if (state == loginUIState.LOGIN) //CREATE USER BUTTON
@@ -122,18 +122,20 @@ public class LoginManager : MonoBehaviour
         else if (state == loginUIState.CHOOSE_ACTION) //RETURN BUTTON AT CHOOSE ACTION
         {
             loggingIn = false;
+            PlaySound("cancel");
+            LogOff();
             state = loginUIState.LOGIN;
         }
         else if (state == loginUIState.CHOOSE_TEAM) // RETURN BUTTON AT CHOOSE TEAM
         {
+            PlaySound("cancel");
             state = loginUIState.CHOOSE_ACTION;
         }
     }
 
     public void CreateUserButtonClicked()
     {
-        getPHP.CreateUser(nameInput.text, passInput.text, emailInput.text);
-        state = loginUIState.LOGIN;
+        StartCoroutine(CreateUserLoginCoroutine());
     }
 
     public void LoginButtonClicked()
@@ -141,21 +143,23 @@ public class LoginManager : MonoBehaviour
         if (!loggingIn)
         {
             loggingIn = true;
-            getPHP.FindUser(loginNameInput.text, loginPassInput.text);
+            PlaySound("confirm");
             StartCoroutine(LoginCoroutine());
         }
     }
 
     public void NewGameButtonClicked()
     {
+        PlaySound("confirm");
         state = loginUIState.CHOOSE_TEAM;
     }
 
     public void ContinueGameButtonClicked()
     {
         UpdateLoadedInfo();
-        SceneLoader.playingInfo = loadedInfo;
-        SceneLoader.instance.LoadNextMusic();
+        SceneLoader.instance.playingInfo = loadedInfo;
+        PlaySound("confirm");
+        SceneLoader.instance.LoadMusic();
     }
 
     public void ChooseBullButtonClicked(int choosenBull)
@@ -163,6 +167,7 @@ public class LoginManager : MonoBehaviour
          if (choosenBull == 0 || choosenBull == 1)
         {
             loadedInfo.team = choosenBull;
+            PlaySound("confirm");
             StartCoroutine(CreateSessionCoroutine());
         }
          else
@@ -174,55 +179,118 @@ public class LoginManager : MonoBehaviour
         Application.Quit();
     }
 
+    public void PlaySound(string action)
+    {
+        MenuAudio.instance.PlayMenuSFX(action);
+    }
+
+    public void LogOff()
+    {
+        loadedInfo = new Info();
+        loadedInfo.grades = new int[3];
+        getPHP.currentPlayerData.Clear();
+        getPHP.currentIdData.Clear();
+    }
+
     IEnumerator LoginCoroutine()
     {
-        while (getPHP.currentPlayerData.error == true)
+        StartCoroutine(givePlayerTextFeedback("Entrando...", "confirm", null));
+        getPHP.FindUser(loginNameInput.text, loginPassInput.text);
+
+        int nCounter = numTries;
+        while (getPHP.currentPlayerData.error == true && nCounter > 0)
         {
             yield return null;
+            nCounter--;
         }
-
-        getPHP.CheckIfSessaoExists(getPHP.currentPlayerData.name);
-
-        while (getPHP.currentIdData.error == true)
+        if(nCounter == 0)
         {
-            yield return null;
-        }
-
-        UpdateLoadedInfo();
-        if(loadedInfo.idSession != 0 && loadedInfo.team != 2)
-        {
-            chooseActionPanelText[0].text = loadedInfo.name;
-            chooseActionPanelText[1].text = SceneLoader.ConvMusicIndexToName(loadedInfo.music, loadedInfo.team);
-            chooseActionContinuarButton.gameObject.SetActive(true);
-            chooseActionPanelText[1].gameObject.SetActive(true);
-            chooseActionPanelText[2].gameObject.SetActive(true);
-            if (loadedInfo.team == 0)
-                chooseActionPanelText[2].text = "CAPRICHOSO";
-            else if (loadedInfo.team == 1)
-                chooseActionPanelText[2].text = "GARANTIDO";
+            StartCoroutine(givePlayerTextFeedback(GetPHP.returnMessage, null, "cancel"));
         }
         else
         {
-            chooseActionContinuarButton.gameObject.SetActive(false);
-            chooseActionPanelText[1].gameObject.SetActive(false);
-            chooseActionPanelText[2].gameObject.SetActive(false);
+            StartCoroutine(givePlayerTextFeedback(GetPHP.returnMessage, null, null));
+            getPHP.CheckIfSessaoExists(getPHP.currentPlayerData.name);
+
+            nCounter = numTries;
+            while (getPHP.currentIdData.error == true && nCounter > 0)
+            {
+                yield return null;
+                nCounter--;
+            }
+            if (nCounter == 0)
+            {
+                StartCoroutine(givePlayerTextFeedback(GetPHP.returnMessage, "cancel", null));
+            }
+            else
+            {
+                StartCoroutine(givePlayerTextFeedback(GetPHP.returnMessage, null, null));
+                UpdateLoadedInfo();
+                chooseActionPanelText[0].text = loadedInfo.name;
+                if (loadedInfo.idSession != 0 && loadedInfo.team != 2)
+                {
+                    chooseActionPanelText[1].text = SceneLoader.ConvMusicIndexToName(loadedInfo.team, loadedInfo.music);
+                    chooseActionContinuarButton.gameObject.SetActive(true);
+                    chooseActionPanelText[1].gameObject.SetActive(true);
+                    chooseActionPanelText[2].gameObject.SetActive(true);
+                    if (loadedInfo.team == 0)
+                        chooseActionPanelText[2].text = "GARANTIDO";
+                    else if (loadedInfo.team == 1)
+                        chooseActionPanelText[2].text = "CAPRICHOSO";
+                }
+                else
+                {
+                    chooseActionContinuarButton.gameObject.SetActive(false);
+                    chooseActionPanelText[1].gameObject.SetActive(false);
+                    chooseActionPanelText[2].gameObject.SetActive(false);
+                }
+
+                state = loginUIState.CHOOSE_ACTION;
+            }
         }
 
-        state = loginUIState.CHOOSE_ACTION;
+        loggingIn = false;
     }
 
     IEnumerator CreateSessionCoroutine()
     {
         getPHP.CreateSession(loadedInfo.name, loadedInfo.team);
 
-        while(getPHP.currentIdData.error == true)
+        int nCounter = numTries;
+        while(getPHP.currentIdData.error == true && nCounter > 0)
         {
             yield return null;
+            nCounter--;
         }
 
-        UpdateLoadedInfo();
-        SceneLoader.playingInfo = loadedInfo;
-        SceneLoader.instance.LoadNextMusic();
+        if(nCounter != 0)
+        {
+            UpdateLoadedInfo();
+            SceneLoader.instance.playingInfo = loadedInfo;
+            SceneLoader.instance.LoadMusic();
+        }
+
+        Debug.Log(GetPHP.returnMessage);
+    }
+
+    IEnumerator CreateUserLoginCoroutine()
+    {
+        getPHP.CreateUser(nameInput.text, passInput.text, emailInput.text);
+        int nCounter = numTries;
+        while (!GetPHP.jobIsDone && nCounter > 0)
+        {
+            yield return null;
+            nCounter--;
+        }
+
+        GetPHP.jobIsDone = false;
+        if (nCounter == 0)
+            StartCoroutine(givePlayerTextFeedback(GetPHP.returnMessage, null, "cancel"));
+        else
+        {
+            StartCoroutine(givePlayerTextFeedback(GetPHP.returnMessage, "confirm", null));
+            state = loginUIState.LOGIN;
+        }
     }
 
     public void UpdateLoadedInfo()
@@ -231,17 +299,19 @@ public class LoginManager : MonoBehaviour
         loadedInfo.music = getPHP.currentIdData.music;
         loadedInfo.team = getPHP.currentIdData.team;
         loadedInfo.idSession = getPHP.currentIdData.id;
-
+        loadedInfo.grades[0] = getPHP.currentIdData.grades[0];
+        loadedInfo.grades[1] = getPHP.currentIdData.grades[1];
+        loadedInfo.grades[2] = getPHP.currentIdData.grades[2];
     }
 
-    IEnumerator givePlayerTextFeedback()
+    IEnumerator givePlayerTextFeedback(string feedback, string onStartSound, string onEndSound)
     {
-          feedbackTextMesh.gameObject.SetActive(true);
-          feedbackTextMesh.text = GetPHP.returnMessage;
-          yield return new WaitForSeconds(2.0f);
-          feedbackTextMesh.text = "";
-          GetPHP.returnMessage = "";
-          feedbackTextMesh.gameObject.SetActive(false);
+        feedbackTextMesh.gameObject.SetActive(true);
+        feedbackTextMesh.text += feedback + "\n";
+        if (!string.IsNullOrEmpty(onStartSound)) PlaySound(onStartSound);
+        yield return new WaitForSeconds(2.0f);
+        feedbackTextMesh.text = "";
+        feedbackTextMesh.gameObject.SetActive(false);
+        if (!string.IsNullOrEmpty(onEndSound)) PlaySound(onEndSound);
     }
-
 }

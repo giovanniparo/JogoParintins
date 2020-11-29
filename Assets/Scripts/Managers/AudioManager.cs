@@ -6,7 +6,8 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager instance;
     
-    [SerializeField] private AudioClip[] musics;
+    [SerializeField] private AudioClip[] musicsGaratindo;
+    [SerializeField] private AudioClip[] musicsCaprichoso;
     [SerializeField] private AudioClip[] sfxs;
     [SerializeField] private AudioSource musicSource;
     [SerializeField] private AudioSource[] hitSfxSources;
@@ -31,35 +32,21 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    public void PlayMusic(string level)
+    public void PlayMusic(int music, int team)
     {
-        switch(level)
-        {
-            case "vermelho":
-                musicSource.clip = musics[0];
-                break;
-            case "eusouatoada":
-                musicSource.clip = musics[1];
-                break;
-            case "tictictac":
-                musicSource.clip = musics[2];
-                break;
-            case "paixaoazul":
-                musicSource.clip = musics[3];
-                break;
-            case "cantodamata":
-                musicSource.clip = musics[4];
-                break;
-            case "evolucaodascores":
-                musicSource.clip = musics[5];
-                break;
-            default:
-                Debug.LogWarning("Music not defined");
-                break;
-        }
-
         musicSource.volume = 0.02f;
-        musicSource.Play();
+        if (team == 0) //Garantido
+        {
+            musicSource.clip = musicsGaratindo[music];
+            musicSource.Play();
+        }
+        else if (team == 1) //Caprichoso
+        {
+            musicSource.clip = musicsCaprichoso[music];
+            musicSource.Play();
+        }
+        else
+            Debug.LogError("Failed to load a valid music clip, team not def");
     }
 
     public void PlayHitSound()

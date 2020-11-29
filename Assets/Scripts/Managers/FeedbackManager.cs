@@ -18,7 +18,6 @@ public class FeedbackManager : MonoBehaviour
 
     [SerializeField] private Gradient[] colorGradients;
     [SerializeField] private GameObject particleGeneratorDrums;
-    [SerializeField] private GameObject particleChainUI;
 
     [SerializeField] private Transform feedbackBubblePosition;
     [SerializeField] private GameObject[] feedbackBubblePrefabs;
@@ -27,6 +26,7 @@ public class FeedbackManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI scoreText;
     [SerializeField] private TextMeshProUGUI chainText;
     [SerializeField] private TextMeshProUGUI scorePlusText;
+    [SerializeField] private TextMeshProUGUI[] gradesText;
     [SerializeField] private GameObject startText;
     [SerializeField] private GameObject[] playingUIElements;
     [SerializeField] private GameObject feedbackUIElements;
@@ -73,10 +73,11 @@ public class FeedbackManager : MonoBehaviour
         scoreTextAnimator = scoreText.gameObject.GetComponent<Animator>();
         chainTextAnimator = chainText.gameObject.GetComponent<Animator>();
 
-        levelStatsData = new LevelStats(SceneLoader.playingInfo.name,
-                                        SceneLoader.playingInfo.music,
-                                        SceneLoader.playingInfo.team,
-                                        SceneLoader.playingInfo.idSession);
+        levelStatsData = new LevelStats(SceneLoader.instance.playingInfo.name,
+                                        SceneLoader.instance.playingInfo.music,
+                                        SceneLoader.instance.playingInfo.team,
+                                        SceneLoader.instance.playingInfo.idSession);
+        SetGradeTexts();
         SetMusicData();
         SetParticleSystemColor();
         state = uiState.PLAYING;
@@ -105,7 +106,12 @@ public class FeedbackManager : MonoBehaviour
 
             StartCoroutine("ShowFeedbackCoroutine");
         }
-        else Debug.LogWarning("UI in a state not defined");
+        else if(state == uiState.FEEDBACK)
+        {
+            /* TODO*/
+        }
+        else
+            Debug.LogWarning("UI in a state not defined");
     }
 
     private void UpdateUI()
@@ -193,11 +199,16 @@ public class FeedbackManager : MonoBehaviour
     public void SaveButtonClicked()
     {
         getPHP.SaveMusicData(levelStatsData.levelData);
+        getPHP.InsertNewScoreLine(levelStatsData.levelData.name, levelStatsData.levelData.team,
+                                  levelStatsData.levelData.music + 1, levelStatsData.levelData.idSession);
+        feedbackWindowSaveButton.gameObject.SetActive(false);
     }
 
     public void NextButtonClicked()
     {
-        SceneLoader.instance.LoadNextMusic();
+        SceneLoader.instance.playingInfo.grades[levelStatsData.levelData.music] = levelStatsData.levelData.grade;
+        SceneLoader.instance.playingInfo.music++;
+        SceneLoader.instance.LoadMusic();
     }
 
     public void SetMusicData()
@@ -252,12 +263,39 @@ public class FeedbackManager : MonoBehaviour
         musicDataText[1].text = bandName;
     }
 
+    public void SetGradeTexts()
+    {
+        if(SceneLoader.instance.playingInfo.grades[0] != -1)
+        {
+            gradesText[0].text = SceneLoader.instance.playingInfo.grades[0].ToString();
+            if (SceneLoader.instance.playingInfo.grades[0] > 60)
+                gradesText[0].color = Color.green;
+            else
+                gradesText[0].color = Color.red;
+        }
+
+        if (SceneLoader.instance.playingInfo.grades[1] != -1)
+        {
+            gradesText[1].text = SceneLoader.instance.playingInfo.grades[1].ToString();
+            if (SceneLoader.instance.playingInfo.grades[1] > 60)
+                gradesText[1].color = Color.green;
+            else
+                gradesText[1].color = Color.red;
+        }
+        if (SceneLoader.instance.playingInfo.grades[2] != -1)
+        {
+            gradesText[2].text = SceneLoader.instance.playingInfo.grades[2].ToString();
+            if (SceneLoader.instance.playingInfo.grades[2] > 60)
+                gradesText[2].color = Color.green;
+            else
+                gradesText[2].color = Color.red;
+        }
+    }
+
     public void SetParticleSystemColor() //Call at start
     {
         //Setting Color over Lifetime
         var colorOverLifetimeModule = particleGeneratorDrums.GetComponent<ParticleSystem>().colorOverLifetime;
-        colorOverLifetimeModule.color = colorGradients[levelStatsData.levelData.team];
-        colorOverLifetimeModule = particleChainUI.GetComponent<ParticleSystem>().colorOverLifetime;
         colorOverLifetimeModule.color = colorGradients[levelStatsData.levelData.team];
     }
 
@@ -265,20 +303,15 @@ public class FeedbackManager : MonoBehaviour
     {
         if(chainCounter == 0)
         {
-            particleGeneratorDrums.GetComponent<ParticleSystem>().Stop(false, ParticleSystemStopBehavior.StopEmitting);
-            particleChainUI.GetComponent<ParticleSystem>().Stop(false, ParticleSystemStopBehavior.StopEmitting);
+            particleGeneratorDrums.GetComponent<ParticleSystem>().Stop(false, ParticleSystemStopBehavior.StopEmitting); 
         }
         else
         {
             if(particleGeneratorDrums.GetComponent<ParticleSystem>().isStopped)
                 particleGeneratorDrums.GetComponent<ParticleSystem>().Play();
-            if(particleChainUI.GetComponent<ParticleSystem>().isStopped)
-                particleChainUI.GetComponent<ParticleSystem>().Play();
             //Setting Emissions
             var emissionModule = particleGeneratorDrums.GetComponent<ParticleSystem>().emission;
-            emissionModule.rateOverTime = Mathf.Clamp(chainCounter * 10, 0.0f, 200.0f);
-            emissionModule = particleChainUI.GetComponent<ParticleSystem>().emission;
-            emissionModule.rateOverTime = Mathf.Clamp(chainCounter * 2, 0.0f, 40.0f);
+            emissionModule.rateOverTime = Mathf.Clamp(chainCounter * 15, 0.0f, 200.0f);
         }
     }
 

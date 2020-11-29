@@ -7,6 +7,7 @@ TagManager:
   - CircleHit
   - HoldHit
   - Canvas
+  - NewHitMarker
   layers:
   - Default
   - TransparentFX

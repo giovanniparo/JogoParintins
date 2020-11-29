@@ -9,6 +9,7 @@ public class GetPHP : MonoBehaviour
     public JogadorLoginData currentPlayerData;
     public IdData currentIdData;
     public static string returnMessage;
+    public static bool jobIsDone = false;
 
     private void Awake()
     {
@@ -40,6 +41,11 @@ public class GetPHP : MonoBehaviour
     {
         currentIdData.Clear();
         StartCoroutine(CreateSessionCoroutine(name, team));
+    }
+
+    public void InsertNewScoreLine(string name, int team, int music, int idSession)
+    {
+        StartCoroutine(InsertNewScoreCoroutine(name, team, music, idSession));
     }
 
     IEnumerator CheckIfSessaoExistsCoroutine(string name)
@@ -101,6 +107,7 @@ public class GetPHP : MonoBehaviour
             {
                 Debug.Log(w.downloadHandler.text);
                 returnMessage = w.downloadHandler.text;
+                jobIsDone = true;
             }
         }
     }
@@ -140,6 +147,30 @@ public class GetPHP : MonoBehaviour
         wwwf.AddField("idSession", levelData.idSession);
 
         using (var w = UnityWebRequest.Post("http://localhost/jogos/saveMusicData.php", wwwf))
+        {
+            yield return w.SendWebRequest();
+
+            if (w.isNetworkError || w.isHttpError)
+            {
+                Debug.LogError(w.error);
+            }
+            else
+            {
+                Debug.Log(w.downloadHandler.text);
+                returnMessage = w.downloadHandler.text;
+            }
+        }
+    }
+
+    IEnumerator InsertNewScoreCoroutine(string name, int team, int music, int idSession)
+    {
+        WWWForm wwwf = new WWWForm();
+        wwwf.AddField("name", name);
+        wwwf.AddField("team", team);
+        wwwf.AddField("music", music);
+        wwwf.AddField("idSession", idSession);
+
+        using (var w = UnityWebRequest.Post("http://localhost/jogos/inserirScore.php", wwwf))
         {
             yield return w.SendWebRequest();
 

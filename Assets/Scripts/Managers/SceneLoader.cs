@@ -10,8 +10,8 @@ public class SceneLoader : MonoBehaviour
     [SerializeField] private string[] caprichosoScenes;
     [SerializeField] private string[] garantidoScenes;
 
-    public static Info playingInfo;
-    public static string currentPlayingMusic;
+    public Info playingInfo;
+    public string currentPlayingMusic;
 
     private void Awake()
     {
@@ -24,20 +24,20 @@ public class SceneLoader : MonoBehaviour
             Debug.LogWarning("More than one instance of SceneLoader found.");
             Destroy(this);
         }
+
+        playingInfo.grades = new int[3];
     }
 
-    public void LoadNextMusic()
+    public void LoadMusic()
     {
-        if (playingInfo.team == 0 && playingInfo.music < garantidoScenes.Length)
+        if (playingInfo.team == 0 && playingInfo.music < garantidoScenes.Length) //Garantido
         {
             currentPlayingMusic = garantidoScenes[playingInfo.music];
-            playingInfo.music++;
             SceneManager.LoadScene("Scenes/MusicScene");
         }
-        else if (playingInfo.team == 1 && playingInfo.music < caprichosoScenes.Length)
+        else if (playingInfo.team == 1 && playingInfo.music < caprichosoScenes.Length) //Caprichoso
         {
             currentPlayingMusic = caprichosoScenes[playingInfo.music];
-            playingInfo.music++;
             SceneManager.LoadScene("Scenes/MusicScene");
         }
         else
@@ -68,7 +68,7 @@ public class SceneLoader : MonoBehaviour
                 case 0:
                     return "paixaoazul";
                 case 1:
-                    return "Cantodamata";
+                    return "cantodamata";
                 case 2:
                     return "evolucaodascores";
                 default:
@@ -86,16 +86,21 @@ public class SceneLoader : MonoBehaviour
 
     public static string ConvMusicIndexToName(int team, int musicIndex)
     {
+        string musicName = "ERROR_NOTDEF";
+
         if (team == 0) //Garantido
         {
             switch (musicIndex) 
             {
                 case 0:
-                    return "Vermelho";
+                    musicName = "Vermelho";
+                    break;
                 case 1:
-                    return "Eu Sou a Toada";
+                    musicName = "Eu Sou a Toada";
+                    break;
                 case 2:
-                    return "TIC TIC TAC";
+                    musicName = "TIC TIC TAC";
+                    break;
                 default:
                     Debug.LogWarning("Music not defined");
                     break;
@@ -106,11 +111,14 @@ public class SceneLoader : MonoBehaviour
             switch (musicIndex)
             {
                 case 0:
-                    return "Paixao Azul";
+                    musicName = "Paixao Azul";
+                    break;
                 case 1:
-                    return "Canto Da Mata";
+                    musicName = "Canto Da Mata";
+                    break;
                 case 2:
-                    return "Evolucao Das Cores";
+                    musicName = "Evolucao Das Cores";
+                    break;
                 default:
                     Debug.LogWarning("Music not defined");
                     break;
@@ -121,6 +129,6 @@ public class SceneLoader : MonoBehaviour
             Debug.LogWarning("Team not defined");
         }
 
-        return "ERROR_NOTDEF";
+        return musicName;
     }
 }

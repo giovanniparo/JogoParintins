@@ -10,6 +10,7 @@ public class IdData
     public int id;
     public int music;
     public int team;
+    public int[] grades = new int[3];
 
     public IdData()
     {
@@ -18,6 +19,9 @@ public class IdData
         id = 0;
         music = 4;
         team = 2;
+        grades[0] = -1;
+        grades[1] = -1;
+        grades[2] = -1;
     }
 
     public void Clear()
@@ -27,5 +31,8 @@ public class IdData
         id = 0;
         music = 4;
         team = 2;
+        grades[0] = -1;
+        grades[1] = -1;
+        grades[2] = -1;
     }
 }
